@@ -42,6 +42,13 @@ planes.to_sql('planes', con = conn, index = False)
 ontime_2001.to_sql('ontime', con = conn,index = False)
 ontime_2002.to_sql('ontime', con = conn,index = False, if_exists='append')
 
+for year in range(2001, 2006):
+    ontime = pd.read_csv(str(year)+".csv",  encoding = "ISO-8859-1" )
+    ontime.to_sql('ontime', con = conn, if_exists = 'append', index = False)
+
+conn.commit()
+
+
 curs = conn.cursor()
 
 #1st q

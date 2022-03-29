@@ -42,6 +42,20 @@ planes =
 ontime_2001 = read.csv("N:\\Uni_Bigdata\\2001.csv") 
 ontime_2002 = read.csv("N:\\Uni_Bigdata\\2002.csv")
 
+#how she reads the files and sets up DB
+
+for(i in c(2000:2005)) {
+  ontime <- read.csv(paste0(i, ".csv"), header = TRUE)
+  
+  if(i == 2000) {
+    dbWriteTable(conn, "ontime", ontime)
+  } else {
+    dbWriteTable(conn, "ontime", ontime, append = TRUE)
+  }
+}
+
+
+
 dbWriteTable(conn, "airports", airports)
 dbWriteTable(conn, "carriers", carriers)
 dbWriteTable(conn, "planes", planes)
@@ -113,6 +127,54 @@ q1 = inner_join(carriers_db,ontime_db, by = c("Code" = "UniqueCarrier"), suffix 
 
 #2nd #3rd #4th similiar ,copy it --- todo todo todo
 
+q2 <- ontime_db %>% 
+  inner_join(airports_db, by = c("Dest" = "iata")) %>%
+  filter(Cancelled == 0) %>% group_by(city) %>%
+  summarize(total = n()) %>%
+  arrange(desc(total)) 
+
+print(head(q2, 1))
+
+q3 <- ontime_db %>% 
+  inner_join(carriers_db, by = c("UniqueCarrier" = "Code")) %>%
+  filter(Cancelled == 1 & Description %in% c('United Air Lines Inc.', 'American Airlines Inc.', 'Pinnacle Airlines Inc.', 'Delta Air Lines Inc.')) %>%
+  group_by(Description) %>%
+  summarize(total = n()) %>%
+  arrange(desc(total))
+q3 <- ontime_db %>% 
+  inner_join(carriers_db, by = c("UniqueCarrier" = "Code")) %>%
+  filter(Cancelled == 1 & Description %in% c('United Air Lines Inc.', 'American Airlines Inc.', 'Pinnacle Airlines Inc.', 'Delta Air Lines Inc.')) %>%
+  group_by(Description) %>%
+  summarize(total = n()) %>%
+  arrange(desc(total))
+q4a <- inner_join(ontime_db, carriers_db, by = c("UniqueCarrier" = "Code")) %>%
+  filter(Cancelled == 1 & Description %in% c('United Air Lines Inc.', 'American Airlines Inc.', 'Pinnacle Airlines Inc.', 'Delta Air Lines Inc.')) %>%
+  group_by(Description) %>%
+  summarize(numerator = n()) %>%
+  rename(carrier = Description)
+
+q4b <- inner_join(ontime_db, carriers_db, by = c("UniqueCarrier" = "Code")) %>%
+  filter(Description %in% c('United Air Lines Inc.', 'American Airlines Inc.', 'Pinnacle Airlines Inc.', 'Delta Air Lines Inc.')) %>%
+  group_by(Description) %>%
+  summarize(denominator = n()) %>%
+  rename(carrier = Description)
+
+q4 <- inner_join(q4a, q4b, by = "carrier") %>%
+  mutate_if(is.integer, as.double) %>%
+  mutate(ratio = numerator/denominator) %>%
+  select(carrier, ratio) %>%
+  arrange(desc(ratio))
+
+q4_simplified <- inner_join(ontime_db, carriers_db, by = c("UniqueCarrier" = "Code")) %>%
+  filter(Description %in% c('United Air Lines Inc.', 'American Airlines Inc.', 'Pinnacle Airlines Inc.', 'Delta Air Lines Inc.')) %>%
+  rename(carrier = Description) %>%
+  group_by(carrier) %>%
+  summarise(ratio = mean(Cancelled, na.rm = TRUE)) %>%
+  arrange(desc(ratio))
+
+
+
 #disconnect the db
 
 dbDisconnect(conn)
+
